@@ -1,0 +1,14 @@
+.table-options-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .table-options-btn {
+    display: none;
+  }
+}
