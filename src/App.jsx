@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import LoginForm from './components/LoginForm';
 import ForgotPasswordForm from './components/ForgotPasswordForm';
 import ResetCodeForm from './components/ResetCodeForm';
-import ResetPasswordForm from './components/ResetPasswordForm';
+import ResetPasswordForm from './components/ResetPassword';
 import HomeWithNavbar from './components/HomeWithNavbar';
 import AdminPanel from './components/AdminPanel';
 import SuperAdminPanel from './components/SuperAdminPanel';
@@ -11,15 +11,23 @@ import ViewMembers from './components/ViewMembers';
 import UpdateMember from './components/UpdateMember';
 import ViewAdmins from './components/ViewAdmins';
 import UpdateAdmin from './components/UpdateAdmin';
+import VerifyEmail from './components/VerifyEmail';
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<LoginForm />} />
+      {/* ✅ الهوم تبقى الصفحة الرئيسية */}
+      <Route path="/" element={<HomeWithNavbar />} />
+      
+      {/* ✅ صفحة اللوجين تبقى على /login */}
+      <Route path="/login" element={<LoginForm />} />
+
       <Route path="/forgot" element={<ForgotPasswordForm />} />
       <Route path="/reset-code" element={<ResetCodeForm />} />
       <Route path="/reset-password" element={<ResetPasswordForm />} />
-      <Route path="/home" element={<HomeWithNavbar />} />
+      <Route path="/verifyemail" element={<VerifyEmail />} />
+
+      {/* صفحات الأدمن */}
       <Route path="/admin" element={<AdminPanel />} />
       <Route path="/superadmin" element={<SuperAdminPanel />} />
       <Route path="/view-members" element={<ViewMembers />} />

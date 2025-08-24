@@ -1,98 +1,177 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useMemberData, useUpdateMember } from '../hooks/useUpdateMember';
 
-function UpdateMemberShipCard() {
+export default function UpdateMemberShipCard({ userId: propUserId }) {
+  const userId = propUserId || localStorage.getItem('userId') || null;
+
+  // استعلام البيانات
+  const { data, isLoading: isFetching, error: fetchError } = useMemberData(userId);
+
+  // الميوتاشن لتحديث البيانات
+  const updateMemberMutation = useUpdateMember();
+
+  const jordanMajors = [
+    'Computer Science','Information Technology','Software Engineering','Electrical Engineering',
+    'Mechanical Engineering','Civil Engineering','Industrial Engineering','Architecture',
+    'Medicine','Pharmacy','Dentistry','Nursing','Business Administration','Accounting',
+    'Economics','Law','Education','Psychology','Biology','Chemistry','Physics','Mathematics',
+    'Environmental Science','Agriculture','Tourism and Hospitality','Journalism and Media',
+    'Political Science','Public Administration','Graphic Design','Fine Arts','Biotechnology',
+    'Chemical Engineering','Petroleum Engineering','Other',
+  ];
+
   const [formData, setFormData] = useState({
     id: '',
     phoneNumber: '',
-    country: '',
     city: '',
     addressDetails: '',
-    major: ''
+    gender: '',
+    major: '',
   });
 
-  const [loading, setLoading] = useState(true);
+  const [serverError, setServerError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  // ✅ استخدم ID ثابت للتجريب
-  const testUserId = '123456'; // ← غيره بـ ID حقيقي موجود في الـ DB عندك
-
-  // جلب بيانات العضو
-  const fetchUserData = async (id) => {
-    try {
-      const response = await axios.get(`https://localhost:63478/api/v1/Admin/members/${id}`);
-      const data = response.data;
-      setFormData({
-        id: data.id,
-        phoneNumber: data.phoneNumber || '',
-        country: data.country || '',
-        city: data.city || '',
-        addressDetails: data.addressDetails || '',
-        major: data.major || ''
-      });
-    } catch (error) {
-      console.error('❌ Error fetching user data:', error);
-      alert('❌ Failed to fetch member data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // تحميل البيانات أول ما الصفحة تفتح
   useEffect(() => {
-    fetchUserData(testUserId);
-  }, []);
-
-  // إرسال البيانات للتحديث
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.put('https://localhost:63478/api/v1/Member', formData);
-      alert('✅ Information updated successfully');
-    } catch (error) {
-      console.error('❌ Error updating member info:', error);
-      alert('❌ Failed to update information');
+    if (data) {
+      setFormData({
+        id: data.id || userId || '',
+        phoneNumber: data.phoneNumber || data.mobile || '',
+        city: data.city || data.town || '',
+        addressDetails: data.addressDetails || data.address || '',
+        gender: data.gender || data.sex || '',
+        major: data.major || jordanMajors[0],
+      });
     }
-  };
+  }, [data, userId]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (loading) return <p className="text-center mt-5">Loading...</p>;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setServerError('');
+    setSuccessMsg('');
+
+    if (!formData.gender) {
+      setServerError('الرجاء اختيار النوع (Gender).');
+      return;
+    }
+
+    try {
+      await updateMemberMutation.mutateAsync(formData);
+      setSuccessMsg('✅Update Successful');
+    } catch (err) {
+      const msg =
+        err?.fetchError ||
+  
+        'Update Not Successful';
+      setServerError(msg);
+    }
+  };
+
+  if (isFetching) return <p className="text-center mt-5">Loading...</p>;
 
   return (
     <div className="d-flex justify-content-center mt-5 mb-5">
       <div className="card shadow p-4" style={{ maxWidth: '600px', width: '100%' }}>
-        <h4 className="mb-4 text-center" style={{ color: '#4C9A9A' }}>Update Personal Information</h4>
+        <h4 className="mb-4 text-center" style={{ color: '#4C9A9A' }}>
+          Update Personal Information
+        </h4>
+
+        {fetchError && (
+          <div className="alert alert-warning">
+            {fetchError?.response?.data?.message || fetchError.message || 'Failed to load user data.'}
+          </div>
+        )}
+
+        {serverError && (
+          <div className="alert alert-danger text-start">{serverError}</div>
+        )}
+
+        {successMsg && (
+          <div className="alert alert-success text-start">{successMsg}</div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="form-label">Phone Number</label>
-            <input type="text" name="phoneNumber" className="form-control" value={formData.phoneNumber} onChange={handleChange} />
+            <input
+              type="text"
+              name="phoneNumber"
+              className="form-control"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+            />
           </div>
-          <div className="mb-3">
-            <label className="form-label">Country</label>
-            <input type="text" name="country" className="form-control" value={formData.country} onChange={handleChange} />
-          </div>
+
           <div className="mb-3">
             <label className="form-label">City</label>
-            <input type="text" name="city" className="form-control" value={formData.city} onChange={handleChange} />
+            <input
+              type="text"
+              name="city"
+              className="form-control"
+              value={formData.city}
+              onChange={handleChange}
+            />
           </div>
+
           <div className="mb-3">
             <label className="form-label">Address Details</label>
-            <input type="text" name="addressDetails" className="form-control" value={formData.addressDetails} onChange={handleChange} />
+            <input
+              type="text"
+              name="addressDetails"
+              className="form-control"
+              value={formData.addressDetails}
+              onChange={handleChange}
+            />
           </div>
+
+          <div className="mb-3">
+            <label className="form-label">Gender</label>
+            <select
+              className="form-select"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Choose gender</option>
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+
           <div className="mb-3">
             <label className="form-label">Major</label>
-            <input type="text" name="major" className="form-control" value={formData.major} onChange={handleChange} />
+            <select
+              className="form-select"
+              name="major"
+              value={formData.major}
+              onChange={handleChange}
+              required
+            >
+              {jordanMajors.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
           </div>
-          <button type="submit" className="btn btn-success w-100">Update</button>
+
+          <button
+            type="submit"
+            className="btn btn-success w-100 fw-bold"
+            style={{ backgroundColor: '#96B7A0', fontSize: '18px' }}
+            disabled={updateMemberMutation.isLoading}
+          >
+            {updateMemberMutation.isLoading ? 'Updating...' : 'Update'}
+          </button>
         </form>
       </div>
     </div>
   );
 }
-
-export default UpdateMemberShipCard;

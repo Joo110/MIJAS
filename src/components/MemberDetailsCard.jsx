@@ -24,8 +24,6 @@ function MemberDetailsCard({ member, onClose }) {
             <li className="list-group-item"><strong>Address:</strong> {member.addressDetails}</li>
             <li className="list-group-item"><strong>Major:</strong> {member.major}</li>
             <li className="list-group-item"><strong>Date of Birth:</strong> {member.dateOfBirth}</li>
-            <li className="list-group-item"><strong>Status:</strong> {member.isActive ? 'Active' : 'Inactive'}</li>
-            <li className="list-group-item"><strong>Membership:</strong> {member.hasActiveMembership ? 'Active' : 'Inactive'}</li>
             <li className="list-group-item"><strong>Created At:</strong> {new Date(member.createdAt).toLocaleString()}</li>
           </ul>
         </div>

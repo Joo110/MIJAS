@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useRenewMembership } from '../hooks/useRenewMembership';
 
-function RenewMembershipForm({ memberId, onSubmit, onCancel }) {
+function RenewMembershipForm({ memberId, onCancel }) {
   const [numberOfDays, setNumberOfDays] = useState('');
   const [amount, setAmount] = useState('');
+
+  const { renewMembershipMutation } = useRenewMembership();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,11 +18,25 @@ function RenewMembershipForm({ memberId, onSubmit, onCancel }) {
       return;
     }
 
-    onSubmit({ memberId, numberOfDays: days, amount: amt });
+    renewMembershipMutation.mutate(
+      { memberId, numberOfDays: days, amount: amt },
+      {
+        onSuccess: () => {
+          alert('✅ Membership renewed successfully');
+          onCancel(); // يقفل الفورم بعد النجاح
+        },
+        onError: (err) => {
+          alert('❌ Error renewing membership: ' + err.message);
+        },
+      }
+    );
   };
 
   return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center" style={{ zIndex: 2000 }}>
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-center"
+      style={{ zIndex: 2000 }}
+    >
       <div className="bg-white p-4 rounded shadow" style={{ width: '400px' }}>
         <h5 className="mb-3">Renew Membership</h5>
         <form onSubmit={handleSubmit}>
@@ -47,11 +64,20 @@ function RenewMembershipForm({ memberId, onSubmit, onCancel }) {
           </div>
 
           <div className="d-flex justify-content-between">
-            <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onCancel}
+              disabled={renewMembershipMutation.isLoading}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-success">
-              Renew
+            <button
+              type="submit"
+              className="btn btn-success"
+              disabled={renewMembershipMutation.isLoading}
+            >
+              {renewMembershipMutation.isLoading ? 'Renewing...' : 'Renew'}
             </button>
           </div>
         </form>

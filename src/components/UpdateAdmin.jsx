@@ -1,81 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useAdminInfo } from '../hooks/useAdminInfo';
 
 function UpdateAdmin() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { admin } = location.state || {};
+  const { updateAdminInfo } = useAdminInfo();
 
+  // الفورم للحقول اللي عايزين نعدلها
   const [formData, setFormData] = useState({
-    username: '',
-    fullName: '',
-    email: ''
+    phoneNumber: '',
+    city: '',
+    addressDetails: '',
+    major: '',
   });
-
-  useEffect(() => {
-    if (admin) {
-      setFormData({
-        username: admin.username || '',
-        fullName: admin.fullName || '',
-        email: admin.email || ''
-      });
-    }
-  }, [admin]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleUpdate = () => {
-    console.log('Updated admin:', formData);
-    alert('Admin updated successfully!');
-    navigate('/view-admins');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateAdminInfo.mutate(formData);
   };
-
-  if (!admin) {
-    return <div className="container mt-5">No admin data found.</div>;
-  }
 
   return (
-    <div className="container mt-5" style={{ maxWidth: '600px' }}>
-      <h3 className="text-center mb-4">Update Admin</h3>
-      <div className="bg-white p-4 shadow rounded">
-        <div className="mb-3">
-          <label className="form-label">Username</label>
+    <div className="container mt-5">
+      <h3 className="mb-4 fw-bold">Edit Admin Information</h3>
+
+      <form onSubmit={handleSubmit} className="bg-white p-4 shadow rounded">
+        <div className="form-group mb-3">
+          <label className="form-label">Phone Number</label>
           <input
             type="text"
             className="form-control"
-            name="username"
-            value={formData.username}
+            name="phoneNumber"
+            value={formData.phoneNumber}
             onChange={handleChange}
-            disabled
           />
         </div>
-        <div className="mb-3">
-          <label className="form-label">Full Name</label>
+
+        <div className="form-group mb-3">
+          <label className="form-label">City</label>
           <input
             type="text"
             className="form-control"
-            name="fullName"
-            value={formData.fullName}
+            name="city"
+            value={formData.city}
             onChange={handleChange}
           />
         </div>
-        <div className="mb-3">
-          <label className="form-label">Email</label>
+
+        <div className="form-group mb-3">
+          <label className="form-label">Address Details</label>
           <input
-            type="email"
+            type="text"
             className="form-control"
-            name="email"
-            value={formData.email}
+            name="addressDetails"
+            value={formData.addressDetails}
             onChange={handleChange}
           />
         </div>
-        <button className="btn w-100 text-white" style={{ backgroundColor: '#96B7A0' }} onClick={handleUpdate}>
-          Update Admin
+
+        <div className="form-group mb-3">
+          <label className="form-label">Major</label>
+          <input
+            type="text"
+            className="form-control"
+            name="major"
+            value={formData.major}
+            onChange={handleChange}
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="btn text-white fw-bold px-4"
+          style={{ backgroundColor: 'hsla(120, 36%, 72%, 1.00)' }}
+          disabled={updateAdminInfo.isLoading}
+        >
+          {updateAdminInfo.isLoading ? 'Saving...' : 'Save Changes'}
         </button>
-      </div>
+      </form>
+
+      {updateAdminInfo.isSuccess && (
+        <div className="alert alert-success mt-3">✅ Info updated successfully</div>
+      )}
+      {updateAdminInfo.isError && (
+        <div className="alert alert-danger mt-3">❌ Failed to update info</div>
+      )}
     </div>
   );
 }

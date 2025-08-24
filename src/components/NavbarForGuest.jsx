@@ -4,7 +4,7 @@ function NavbarForGuest() {
       <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div className="container">
           <a className="navbar-brand" href="#">
-            <img src="/طط.webp" alt="Logo" width="180" />
+            <img src="/logo-03-05.png" alt="Logo" width="180" />
           </a>
           <button
             className="navbar-toggler"

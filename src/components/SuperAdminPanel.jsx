@@ -33,10 +33,13 @@ function SuperAdminPanel() {
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-        <div className="container-fluid">
-          <a className="navbar-brand" href="#">
-            <img src="/طط.webp" alt="Logo" width="140" />
+      <nav 
+  className="navbar navbar-expand-lg shadow-sm" 
+  style={{ backgroundColor: "hsla(120, 36%, 72%, 1.00)" }}
+>
+  <div className="container-fluid">
+    <a className="navbar-brand fw-bold" href="#">
+            <img src="/logo-03-05.png" alt="Logo" width="140" />
           </a>
 
           <button

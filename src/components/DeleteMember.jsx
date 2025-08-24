@@ -1,38 +1,39 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+'use client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api';
+import { useDeleteMember } from '../hooks/useDeleteMember';
 
-function DeleteMember() {
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function DeleteMember() {
+  const queryClient = useQueryClient();
 
-  const apiUrl = 'https://localhost:63478/api/v1/Admin/members';
+  // جلب الأعضاء
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ['members'],
+    queryFn: async () => {
+      const { data } = await api.get('/api/v1/Admin/members');
+      return data;
+    },
+  });
 
-  // جلب الأعضاء من الـ API
-  useEffect(() => {
-    axios.get(apiUrl)
-      .then(res => {
-        setMembers(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+  // hook للحذف
+  const deleteMemberMutation = useDeleteMember();
 
-  // حذف عضو بالـ ID
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     const confirm = window.confirm('Are you sure you want to delete this member?');
     if (!confirm) return;
 
-    try {
-      await axios.delete(`${apiUrl}/${id}`);
-      setMembers(prev => prev.filter(member => member.id !== id));
-      alert('✅ Member deleted successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Failed to delete member.');
-    }
+    deleteMemberMutation.mutate(id, {
+      onSuccess: (deletedId) => {
+        // تحديث البيانات في الـ cache بدون إعادة تحميل
+        queryClient.setQueryData(['members'], (old = []) =>
+          old.filter(member => member.id !== deletedId)
+        );
+        alert('✅ Member deleted successfully.');
+      },
+      onError: (error) => {
+        alert(error.message);
+      },
+    });
   };
 
   return (
@@ -42,7 +43,7 @@ function DeleteMember() {
           Delete Member
         </h2>
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center">Loading members...</div>
         ) : (
           <table className="table table-bordered text-center">
@@ -65,8 +66,9 @@ function DeleteMember() {
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDelete(member.id)}
+                        disabled={deleteMemberMutation.isLoading}
                       >
-                        Delete
+                        {deleteMemberMutation.isLoading ? 'Deleting...' : 'Delete'}
                       </button>
                     </td>
                   </tr>
@@ -83,5 +85,3 @@ function DeleteMember() {
     </div>
   );
 }
-
-export default DeleteMember;

@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ViewMembers from './ViewMembers';
 import AddMember from './AddMember';
 import AdminInfoForm from './AdminInfoForm';
-// لو عندك الملفات دول استبدلهم باللي عندك
-import MemberShipHistory from './MemberShipHistory';  // لازم تعمل الملف ده
-import MemberHistory from './MemberHistory';          // ولازم كمان الملف ده
+import MemberShipHistory from './MemberShipHistory';
+import MemberHistory from './MemberHistory';
+import { useAdminPanelNavigation } from '../hooks/useAdminPanelNavigation';
 
 function AdminPanel() {
-  const [activePage, setActivePage] = useState('view');
-  const [isNavbarOpen, setIsNavbarOpen] = useState(false);
+  const {
+    activePage,
+    isNavbarOpen,
+    toggleNavbar,
+    goToPage,
+  } = useAdminPanelNavigation();
 
   const renderPage = () => {
     switch (activePage) {
@@ -27,21 +31,16 @@ function AdminPanel() {
     }
   };
 
-  const toggleNavbar = () => {
-    setIsNavbarOpen(!isNavbarOpen);
-  };
-
-  const closeNavbar = () => {
-    setIsNavbarOpen(false);
-  };
-
   return (
     <>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-        <div className="container">
-          <a className="navbar-brand fw-bold" href="#">
-            <img src="/طط.webp" alt="Logo" width="160" className="me-2" /> Admin Panel
-          </a>
+      <nav 
+  className="navbar navbar-expand-lg navbar-light shadow-sm"
+  style={{ backgroundColor: "hsla(120, 36%, 72%, 1.00)" }}
+>
+  <div className="container">
+    <a className="navbar-brand fw-bold" href="#">
+      <img src="/logo-03-05.png" alt="Logo" width="160" className="me-2" /> Admin Panel
+    </a>
 
           <button
             className="navbar-toggler"
@@ -56,62 +55,22 @@ function AdminPanel() {
 
           <div className={`collapse navbar-collapse ${isNavbarOpen ? 'show' : ''}`} id="navbarNav">
             <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <button
-                  className="nav-link btn btn-link fw-bold"
-                  onClick={() => {
-                    setActivePage('view');
-                    closeNavbar();
-                  }}
-                >
-                  View Members
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className="nav-link btn btn-link fw-bold"
-                  onClick={() => {
-                    setActivePage('add');
-                    closeNavbar();
-                  }}
-                >
-                  Add Member
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className="nav-link btn btn-link fw-bold"
-                  onClick={() => {
-                    setActivePage('editAdmin');
-                    closeNavbar();
-                  }}
-                >
-                  Edit Admin Info
-                </button>
-              </li>
-              {/* الخيارات الجديدة */}
-              <li className="nav-item">
-                <button
-                  className="nav-link btn btn-link fw-bold"
-                  onClick={() => {
-                    setActivePage('membershipHistory');
-                    closeNavbar();
-                  }}
-                >
-                  MemberShip History
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className="nav-link btn btn-link fw-bold"
-                  onClick={() => {
-                    setActivePage('memberHistory');
-                    closeNavbar();
-                  }}
-                >
-                  Member History
-                </button>
-              </li>
+              {[
+                { key: 'view', label: 'View Members' },
+                { key: 'add', label: 'Add Member' },
+                { key: 'editAdmin', label: 'Edit Admin Info' },
+                { key: 'membershipHistory', label: 'MemberShip History' },
+                { key: 'memberHistory', label: 'Member History' },
+              ].map((item) => (
+                <li className="nav-item" key={item.key}>
+                  <button
+                    className="nav-link btn btn-link fw-bold"
+                    onClick={() => goToPage(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

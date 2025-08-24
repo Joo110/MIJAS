@@ -1,116 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+'use client';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './ViewMembers.css';
 import MemberDetailsCard from './MemberDetailsCard';
 import RenewMembershipForm from './RenewMembershipForm';
+import { useDeactivateMembership } from '../hooks/useDeactivateMembership';
+import './ViewMembers.css';
+import {
+  useMembers,
+  useToggleMemberStatus
+} from '../hooks/useMembers';
+import { useVerifyEmail } from '../hooks/useVerifyEmail';
+import { useRenewMembership } from '../hooks/useRenewMembership';
 
-function ViewMembers() {
+export default function ViewMembers() {
   const navigate = useNavigate();
-  const [members, setMembers] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
+
+  // Filters & paging
   const [searchBy, setSearchBy] = useState('');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // UI state
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, memberId: null });
   const [viewedMember, setViewedMember] = useState(null);
   const [renewMemberId, setRenewMemberId] = useState(null);
 
+  // Backend hooks
   const membersPerPage = 10;
-  const adminId = "00000000-0000-0000-0000-000000000000"; // Replace with actual adminId from token
+  const { data, isLoading } = useMembers({
+    pageNumber: currentPage,
+    pageSize: membersPerPage,
+    searchBy,
+    search
+  });
+  const { activate, deactivate } = useToggleMemberStatus();
+  const { deactivateMutation } = useDeactivateMembership();
+  const verifyEmail = useVerifyEmail();
+  const { renewMembershipMutation } = useRenewMembership();
 
-  useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const params = {
-          pageNumber: currentPage,
-          pageSize: membersPerPage,
-        };
+  const members = data?.members || [];
+  const totalPages = Math.ceil((data?.totalCount || 0) / membersPerPage);
 
-        if (searchBy && searchBy !== 'fullName' && search.trim() !== '') {
-          params[searchBy] = search;
-        }
-
-        const response = await axios.get('https://localhost:57884/api/v1/Admin/members', { params });
-
-        let apiMembers = response.data.members || [];
-
-        if (searchBy === 'fullName' && search.trim() !== '') {
-          apiMembers = apiMembers.filter((m) =>
-            `${m.firstName} ${m.lastName}`.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        const mappedMembers = apiMembers.map((m) => ({
-          id: m.id,
-          username: m.username,
-          fullName: `${m.firstName} ${m.lastName}`,
-          firstName: m.firstName,
-          lastName: m.lastName,
-          email: m.email,
-          phone: m.phoneNumber || 'N/A',
-          isActive: m.isActiveUser,
-          hasActiveMembership: m.isActiveMembership,
-          createdAt: m.createdAt || 'N/A',
-        }));
-
-        setMembers(mappedMembers);
-        setTotalCount(response.data.totalCount || mappedMembers.length);
-      } catch (error) {
-        console.error('❌ Error fetching members:', error);
-      }
-    };
-
-    fetchMembers();
-  }, [currentPage, searchBy, search]);
-
-  const totalPages = Math.ceil(totalCount / membersPerPage);
-
-  const handleRightClick = (event, memberId) => {
-    event.preventDefault();
-    setContextMenu({ visible: true, x: event.clientX, y: event.clientY, memberId });
+  // Context menu handlers
+  const handleRightClick = (e, memberId) => {
+    e.preventDefault();
+    setContextMenu({ visible: true, x: e.clientX, y: e.clientY, memberId });
   };
 
   const handleOptionsClick = (id, e) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    setContextMenu({ visible: true, x: rect.left, y: rect.bottom + window.scrollY, memberId: id });
+    setContextMenu({
+      visible: true,
+      x: rect.left,
+      y: rect.bottom + window.scrollY,
+      memberId: id
+    });
   };
 
-  const handleCloseMenu = () => setContextMenu({ ...contextMenu, visible: false });
+  const handleCloseMenu = () =>
+    setContextMenu(prev => ({ ...prev, visible: false }));
 
+  // Row actions
   const handleUpdate = (memberId) => {
-    const selectedMember = members.find((m) => m.id === memberId);
-    if (selectedMember) {
-      navigate('/update-member', { state: { member: selectedMember } });
-    }
+    const m = members.find(mm => mm.id === memberId);
+    if (m) navigate('/update-member', { state: { member: m } });
     handleCloseMenu();
   };
 
-  const handleDelete = async (memberId) => {
-    if (!window.confirm('Are you sure you want to delete this member?')) return;
-
-    try {
-      await axios.delete(`https://localhost:63478/api/v1/Admin/members/${memberId}`);
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
-      alert('✅ Member deleted successfully.');
-    } catch (error) {
-      console.error('❌ Error deleting member:', error);
-      alert('❌ Failed to delete member.');
-    } finally {
-      handleCloseMenu();
-    }
-  };
-
-  const handleViewDetails = async (memberId) => {
-    try {
-      const response = await axios.get(`https://localhost:57884/api/v1/Admin/members/${memberId}`);
-      setViewedMember(response.data);
-    } catch (error) {
-      console.error('❌ Error fetching member details:', error);
-    } finally {
-      handleCloseMenu();
-    }
+  const handleViewDetails = (memberId) => {
+    setViewedMember(members.find(m => m.id === memberId) || null);
+    handleCloseMenu();
   };
 
   const handleRenewMembership = (memberId) => {
@@ -118,81 +78,68 @@ function ViewMembers() {
     handleCloseMenu();
   };
 
-  const handleDeactivateMembership = async (memberId) => {
-    try {
-      await axios.post(`https://localhost:57884/api/v1/Admin/members/deactivate-membership`, {
-        memberId,
-        currentAdminId: adminId
-      });
-
-      alert("✅ Membership deactivated successfully.");
-    } catch (error) {
-      console.error("❌ Error deactivating membership:", error);
-      alert("❌ Failed to deactivate membership.");
-    } finally {
-      handleCloseMenu();
-    }
+  const submitRenewal = ({ memberId, numberOfDays, amount }) => {
+    renewMembershipMutation.mutate(
+      { memberId, numberOfDays, amount },
+      {
+        onSuccess: () => {
+          alert('✅ Membership renewed successfully');
+          setRenewMemberId(null);
+        },
+        onError: () => alert('❌ Failed to renew membership')
+      }
+    );
   };
 
-  const submitRenewal = async ({ memberId, numberOfDays, amount }) => {
-    try {
-      await axios.post(`https://localhost:63478/api/v1/Admin/members/renew-membership`, {
-        memberId,
-        currentAdminId: adminId,
-        numberOfDays,
-        amount
-      });
-
-      alert("✅ Membership renewed successfully.");
-      setRenewMemberId(null);
-    } catch (error) {
-      console.error("❌ Error renewing membership:", error);
-      alert("❌ Failed to renew membership.");
-    }
+  const handleActivate = (memberId) => {
+    activate.mutate(memberId, {
+      onSuccess: () => alert('✅ Activated'),
+      onError: () => alert('❌ Failed')
+    });
+    handleCloseMenu();
   };
 
-  // ==== هذا هو التعديل الجديد: اضافة تفعيل وتعطيل العضو ====
-
-  const handleActivate = async (memberId) => {
-    try {
-      await axios.put(`https://localhost:57884/api/v1/Admin/members/${memberId}/activate`);
-      alert("✅ Member activated successfully.");
-      // تحديث حالة العضو محلياً بدون تحميل جديد (اختياري)
-      setMembers((prev) =>
-        prev.map(m => m.id === memberId ? { ...m, isActive: true } : m)
-      );
-    } catch (error) {
-      console.error("❌ Error activating member:", error);
-      alert("❌ Failed to activate member.");
-    } finally {
-      handleCloseMenu();
-    }
+  const handleDeactivate = (memberId) => {
+    deactivate.mutate(memberId, {
+      onSuccess: () => alert('✅ Deactivated'),
+      onError: () => alert('❌ Failed')
+    });
+    handleCloseMenu();
   };
 
-  const handleDeactivate = async (memberId) => {
-    try {
-      await axios.put(`https://localhost:57884/api/v1/Admin/members/${memberId}/deactivate`);
-      alert("✅ Member deactivated successfully.");
-      setMembers((prev) =>
-        prev.map(m => m.id === memberId ? { ...m, isActive: false } : m)
-      );
-    } catch (error) {
-      console.error("❌ Error deactivating member:", error);
-      alert("❌ Failed to deactivate member.");
-    } finally {
-      handleCloseMenu();
-    }
+  const handleDeactivateMembership = (memberId) => {
+    deactivateMutation.mutate(
+      { memberId },
+      {
+        onSuccess: () => alert('✅ Membership deactivated'),
+        onError: () => alert('❌ Failed to deactivate membership')
+      }
+    );
+    handleCloseMenu();
   };
 
-  // ===============================================
+  const handleVerifyEmail = (memberId) => {
+    verifyEmail.mutate(memberId, {
+      onSuccess: () => alert('📧 Verification email sent!'),
+      onError: () => alert('❌ Failed to send email')
+    });
+    handleCloseMenu();
+  };
+
+  if (isLoading) return <p className="text-center mt-5">Loading members...</p>;
 
   return (
     <div className="container mt-5" onClick={handleCloseMenu}>
       <h3 className="mb-4 text-center">View Members</h3>
 
+      {/* Search */}
       <div className="row mb-3">
         <div className="col-md-3">
-          <select className="form-select" value={searchBy} onChange={(e) => setSearchBy(e.target.value)}>
+          <select
+            className="form-select"
+            value={searchBy}
+            onChange={e => setSearchBy(e.target.value)}
+          >
             <option value="">Search By...</option>
             <option value="username">Username</option>
             <option value="fullName">Full Name</option>
@@ -203,14 +150,15 @@ function ViewMembers() {
           <input
             type="text"
             className="form-control"
-            placeholder={`Enter ${searchBy || 'value'} to search`}
+            placeholder={`Enter ${searchBy || 'value'}`}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value)}
             disabled={!searchBy}
           />
         </div>
       </div>
 
+      {/* Table */}
       {members.length === 0 ? (
         <p className="text-center text-muted">🚫 No members found.</p>
       ) : (
@@ -221,22 +169,35 @@ function ViewMembers() {
               <th>Username</th>
               <th>Full Name</th>
               <th>Phone</th>
-              <th>Status</th>
+              <th>Is Active User</th>
+              <th>Email Verified</th>
               <th className="d-md-none text-center">⋮</th>
             </tr>
           </thead>
           <tbody>
-            {members.map((member, index) => (
-              <tr key={member.id} onContextMenu={(e) => handleRightClick(e, member.id)}>
-                <td>{index + 1 + (currentPage - 1) * membersPerPage}</td>
+            {members.map((member, i) => (
+              <tr
+                key={member.id}
+                onContextMenu={e => handleRightClick(e, member.id)}
+              >
+                <td>{i + 1 + (currentPage - 1) * membersPerPage}</td>
                 <td>{member.username}</td>
                 <td>{member.fullName}</td>
                 <td>{member.phone}</td>
-                <td className={member.isActive ? 'text-success' : 'text-danger'}>
-                  {member.isActive ? 'Active' : 'Inactive'}
+
+                <td className={member.isActiveUser ? 'text-success' : 'text-danger'}>
+                  {member.isActiveUser ? 'Yes' : 'No'}
                 </td>
+
+                <td className={member.emailIsVerified ? 'text-success' : 'text-danger'}>
+                  {member.emailIsVerified ? 'Yes' : 'No'}
+                </td>
+
                 <td className="d-md-none text-center">
-                  <button className="table-options-btn" onClick={(e) => handleOptionsClick(member.id, e)}>
+                  <button
+                    className="table-options-btn"
+                    onClick={e => handleOptionsClick(member.id, e)}
+                  >
                     ⋮
                   </button>
                 </td>
@@ -246,54 +207,86 @@ function ViewMembers() {
         </table>
       )}
 
-      <nav className="d-flex justify-content-center">
-        <ul className="pagination">
-          {[...Array(totalPages)].map((_, i) => (
-            <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-              <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
-                {i + 1}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <nav className="d-flex justify-content-center mt-4">
+          <ul className="pagination">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <li key={p} className={`page-item ${currentPage === p ? 'active' : ''}`}>
+                <button className="page-link" onClick={() => setCurrentPage(p)}>
+                  {p}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {/* Context Menu */}
       {contextMenu.visible && (
         <ul
           className="custom-context-menu bg-white border rounded shadow"
           style={{
-            top: window.innerWidth <= 768 ? '50%' : contextMenu.y,
-            left: window.innerWidth <= 768 ? 'unset' : contextMenu.x,
-            right: window.innerWidth <= 768 ? '10px' : 'unset',
-            transform: window.innerWidth <= 768 ? 'translateY(-50%)' : 'none',
-            position: 'absolute',
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             zIndex: 1000,
             listStyle: 'none',
             padding: 0,
-            width: '200px'
+            width: '220px',
+            background: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px'
           }}
         >
-          <li className="px-3 py-2" onClick={() => handleViewDetails(contextMenu.memberId)}>View Details</li>
-          <li className="px-3 py-2" onClick={() => handleUpdate(contextMenu.memberId)}>Update Member</li>
-          <li className="px-3 py-2 text-danger" onClick={() => handleDelete(contextMenu.memberId)}>Delete Member</li>
-          <li className="px-3 py-2 text-primary fw-bold" onClick={() => handleRenewMembership(contextMenu.memberId)}>Renew Membership</li>
-          <li className="px-3 py-2 text-warning fw-bold" onClick={() => handleDeactivateMembership(contextMenu.memberId)}>Deactivate Membership</li>
+          <li className="px-3 py-2" onClick={() => handleViewDetails(contextMenu.memberId)}>
+            View Details
+          </li>
+          <li className="px-3 py-2" onClick={() => handleUpdate(contextMenu.memberId)}>
+            Update Member
+          </li>      
+          <li
+            className="px-3 py-2 text-primary fw-bold"
+            onClick={() => handleRenewMembership(contextMenu.memberId)}
+          >
+            Renew Membership
+          </li>
+          <li
+            className="px-3 py-2 text-warning fw-bold"
+            onClick={() => handleDeactivateMembership(contextMenu.memberId)}
+          >
+            Deactivate Membership
+          </li>
 
-          {/* زر تفعيل / تعطيل العضو حسب الحالة */}
-          {!members.find(m => m.id === contextMenu.memberId)?.isActive ? (
-            <li className="px-3 py-2 text-success fw-bold" onClick={() => handleActivate(contextMenu.memberId)}>
-              Activate Member
-            </li>
-          ) : (
-            <li className="px-3 py-2 text-danger fw-bold" onClick={() => handleDeactivate(contextMenu.memberId)}>
-              Deactivate Member
+          {!members.find(m => m.id === contextMenu.memberId)?.emailIsVerified && (
+            <li
+              className="px-3 py-2 text-info fw-bold"
+              onClick={() => handleVerifyEmail(contextMenu.memberId)}
+            >
+              Verify Email
             </li>
           )}
 
+          {!members.find(m => m.id === contextMenu.memberId)?.isActiveUser ? (
+            <li
+              className="px-3 py-2 text-success fw-bold"
+              onClick={() => handleActivate(contextMenu.memberId)}
+            >
+              Activate Member
+            </li>
+          ) : (
+            <li
+              className="px-3 py-2 text-danger fw-bold"
+              onClick={() => handleDeactivate(contextMenu.memberId)}
+            >
+              Deactivate Member
+            </li>
+          )}
         </ul>
       )}
 
+      {/* Dialogs */}
       {renewMemberId && (
         <RenewMembershipForm
           memberId={renewMemberId}
@@ -301,10 +294,12 @@ function ViewMembers() {
           onCancel={() => setRenewMemberId(null)}
         />
       )}
-
-      {viewedMember && <MemberDetailsCard member={viewedMember} onClose={() => setViewedMember(null)} />}
+      {viewedMember && (
+        <MemberDetailsCard
+          member={viewedMember}
+          onClose={() => setViewedMember(null)}
+        />
+      )}
     </div>
   );
 }
-
-export default ViewMembers;

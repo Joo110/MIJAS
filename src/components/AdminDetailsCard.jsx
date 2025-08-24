@@ -1,32 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
+import { useAdminDetails } from '../hooks/useAdminDetails';
 
 function AdminDetailsCard({ adminId, onClose }) {
-  const [admin, setAdmin] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: admin, isLoading, isError, error } = useAdminDetails(adminId);
 
-  useEffect(() => {
-    if (!adminId) return;
-
-    const fetchAdmin = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`https://localhost:63478/api/v1/RootAdmin/admins/${adminId}`);
-        setAdmin(response.data);
-        setError('');
-      } catch (err) {
-        console.error('❌ Error fetching admin details:', err);
-        setError('⚠️ Failed to load admin details.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAdmin();
-  }, [adminId]);
-
-  if (!adminId || !admin) return null;
+  if (!adminId) return null;
 
   return (
     <div
@@ -40,10 +18,10 @@ function AdminDetailsCard({ adminId, onClose }) {
             Admin Details
           </h4>
 
-          {loading ? (
+          {isLoading ? (
             <p className="text-center">⏳ Loading...</p>
-          ) : error ? (
-            <p className="text-danger text-center">{error}</p>
+          ) : isError ? (
+            <p className="text-danger text-center">{error.message || '⚠️ Failed to load admin details.'}</p>
           ) : (
             <ul className="list-group list-group-flush">
               <li className="list-group-item"><strong>ID:</strong> {admin.id}</li>

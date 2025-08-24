@@ -1,14 +1,25 @@
 .table-options-btn {
-  background: none;
+  background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 0;
-  line-height: 1;
 }
 
-@media (min-width: 768px) {
-  .table-options-btn {
-    display: none;
+/* قائمة السياق الأساسية */
+.custom-context-menu li {
+  cursor: pointer;
+}
+.custom-context-menu li:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+/* في mobile خلي النص داخل القائمة أكبر */
+@media (max-width: 767px) {
+  .custom-context-menu {
+    border-radius: 8px;
+  }
+  .custom-context-menu li {
+    font-size: 16px;
+    padding: 14px 18px;
   }
 }

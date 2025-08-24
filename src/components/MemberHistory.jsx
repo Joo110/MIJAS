@@ -1,65 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+'use client';
+import React, { useState } from 'react';
+import { useMemberHistory } from '../hooks/useMemberHistory';
 
-function MemberHistory() {
+export default function MemberHistory() {
   const [username, setUsername] = useState('');
-  const [memberHistory, setMemberHistory] = useState([]);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const pageSize = 10;
 
-  // جلب بيانات تاريخ العضو من API بناءً على اسم المستخدم والصفحة
-  useEffect(() => {
-    if (!username.trim()) return;
+  const { data, isLoading, error } = useMemberHistory(username, pageNumber, pageSize);
 
-    const fetchHistory = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const params = {
-          username,
-          pageNumber,
-          pageSize,
-        };
-
-        const response = await axios.get(
-          'https://localhost:57884/api/v1/Admin/members/member-history',
-          { params }
-        );
-
-        setMemberHistory(response.data.memberHistories || response.data.data || []);
-        setTotalCount(response.data.totalCount || 0);
-      } catch (err) {
-        console.error('❌ Error fetching member history:', err);
-        setError('Failed to fetch member history.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
-  }, [username, pageNumber, pageSize]);
-
+  const memberHistory = data?.memberHistories || [];
+  const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // تحويل actionTypeId إلى نص
   const getActionTypeLabel = (actionTypeId) => {
     switch (actionTypeId) {
-      case 1:
-        return 'Create';
-      case 2:
-        return 'Update';
-      case 3:
-        return 'Activate';
-      case 4:
-        return 'Deactivate';
-      case 5:
-        return 'Delete';
-      default:
-        return 'Unknown';
+      case 1: return 'Create';
+      case 2: return 'Update';
+      case 3: return 'Activate';
+      case 4: return 'Deactivate';
+      case 5: return 'Delete';
+      default: return 'Unknown';
     }
   };
 
@@ -81,16 +42,16 @@ function MemberHistory() {
             value={username}
             onChange={(e) => {
               setUsername(e.target.value);
-              setPageNumber(1); // إعادة الصفحة للصفحة الأولى عند تغيير البحث
+              setPageNumber(1);
             }}
           />
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="text-center">Loading...</p>
       ) : error ? (
-        <p className="text-danger text-center">{error}</p>
+        <p className="text-danger text-center">{error.message || 'Failed to fetch member history.'}</p>
       ) : memberHistory.length === 0 ? (
         username.trim() && <p className="text-center text-muted">No member history found.</p>
       ) : (
@@ -141,5 +102,3 @@ function MemberHistory() {
     </div>
   );
 }
-
-export default MemberHistory;
